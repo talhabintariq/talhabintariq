@@ -1,0 +1,39 @@
+.titleBar {
+    background-color: #000;
+    display: block;
+    color: #fff;
+    padding-left: 16px;
+    width: 100%;
+    margin-top: 1.5em;
+    height: 14em;
+}
+.search{
+  content:"\2a";
+}
+.titleText{
+  font-weight: 500;
+  line-height: 1.1;
+  font-family: Georgia;
+  font-size: 67px;
+}
+
+.movieRows{
+  padding-bottom: 1.5em;
+}
+table{
+  margin-bottom: 2.5em !important;
+  padding-right: 60px;
+  padding-left: 60px;
+  border-radius: 6px;
+  display: table;
+}
+
+img{
+  border-radius: 5px;
+}
+tr > td:nth-of-type(1){
+  padding-left: 30px;
+}
+tr > td:nth-of-type(2){
+  padding-left: 30px;
+}
