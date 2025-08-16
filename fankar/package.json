@@ -9,6 +9,9 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck"
   },
+  "dependencies": {
+    "@repo/tsconfig": "workspace:*"
+  },
   "devDependencies": {
     "prettier": "^3.6.2",
     "concurrently": "^9.0.0",
