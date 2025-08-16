@@ -1,0 +1,41 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# ----------------
+# Dependencies
+# ----------------
+node_modules
+.pnp
+.pnp.js
+
+# ----------------
+# Environment
+# ----------------
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.backup
+.envrc
+
+# ----------------
+# Testing
+# ----------------
+coverage
+*.cover
+*.lcov
+
+# ----------------
+# Turbo / pnpm
+# ----------------
+.turbo
+pnpm-debug.log*
+.pnpm-debug.log*
+
+# ----------------
+# Vercel / Next.js
+# ----------------
+.vercel
+.next/
+out/
+build
