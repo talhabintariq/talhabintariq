@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: ['@repo/ui'],
   // Fix for Windows path issues with Turbopack
   experimental: {
     turbo: {
