@@ -1,0 +1,10 @@
+{
+  "name": "@apps/api",
+  "private": true,
+  "scripts": {
+    "dev": "python -m uvicorn src.main:app --reload --port 8000",
+    "build": "echo \"python api - nothing to build\"",
+    "lint": "ruff src || exit 0",
+    "typecheck": "echo \"python typecheck (optional)\""
+  }
+}
