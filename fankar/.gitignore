@@ -19,6 +19,14 @@ node_modules
 .envrc
 
 # ----------------
+# Python Virtual Environments
+# ----------------
+.venv*/
+venv*/
+env*/
+ENV*/
+
+# ----------------
 # Testing
 # ----------------
 coverage
