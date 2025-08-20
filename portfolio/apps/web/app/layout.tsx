@@ -1,11 +1,11 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import Nav from "./(components)/Nav";
-import Footer from "./(components)/Footer";
+import Nav from "@/components/Nav";
+import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "Talha Tariq — Software Engineer",
-  description: "React/Next.js · FastAPI · AI",
+  title: "Talha Tariq — Software & AI",
+  description: "Engineering, AI consulting, and design.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -18,7 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <header className="sticky top-0 z-50 border-b border-white/10 backdrop-blur supports-[backdrop-filter]:bg-black/30">
             <Nav />
           </header>
-          <main className="flex-1">{children}</main>
+          <main className="mx-auto max-w-6xl flex-1 px-4 py-10">{children}</main>
           <Footer />
         </div>
       </body>
