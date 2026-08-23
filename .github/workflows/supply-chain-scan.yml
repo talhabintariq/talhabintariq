@@ -1,0 +1,98 @@
+name: Supply-chain scan
+
+# Blocks the exact injection that hit this account on 2026-08-21: an obfuscated
+# EtherHiding loader appended to tailwind.config.js / postcss.config.mjs behind
+# ~29,900 spaces of padding, with a createRequire shim prepended so it could
+# call require() inside an ESM file.
+#
+# It sat undetected for 11 months because the payload renders off-screen in
+# editors and GitHub diffs. This check does not care what it looks like.
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '17 6 * * 1'   # Mondays, catches anything pushed while checks were off
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan working tree
+        run: |
+          set -uo pipefail
+          FAIL=0
+          PRUNE="-path ./node_modules -prune -o -path ./.git -prune -o -path ./dist -prune -o -path ./build -prune -o -path ./.next -prune -o"
+
+          echo "::group::known payload markers"
+          # Obfuscator string-table/decoder names, the hardcoded wallet split across
+          # four literals, and the C2 request paths.
+          if grep -rInE '_0x12f0|_0x355e|a322e5f3|9adc2490ef|d311d3080e|6f0121063e|/0x/ls|/0x/cl' \
+               --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist \
+               --exclude-dir=build --exclude-dir=.next --exclude-dir=.github \
+               --exclude='*.min.js' --exclude='*.min.css' --exclude='*-lock.json' \
+               --exclude='*.lock' . ; then
+            echo "::error::Known malware markers found."
+            FAIL=1
+          else
+            echo "none"
+          fi
+          echo "::endgroup::"
+
+          echo "::group::createRequire in a build config"
+          # Tailwind/PostCSS/Vite configs have no legitimate reason to shim require().
+          HITS=$(find . $PRUNE -type f \( -name '*.config.js' -o -name '*.config.mjs' -o -name '*.config.cjs' -o -name '*.config.ts' \) -print 2>/dev/null \
+                 | xargs grep -lI 'createRequire' 2>/dev/null || true)
+          if [ -n "$HITS" ]; then
+            echo "$HITS" | sed 's/^/  /'
+            echo "::error::createRequire found in a build config — that is the injection's header shim."
+            FAIL=1
+          else
+            echo "none"
+          fi
+          echo "::endgroup::"
+
+          echo "::group::absurdly long lines in config files"
+          # The payload hides behind padding on one line. Real configs never do this.
+          LONG=$(find . $PRUNE -type f \( -name '*.config.js' -o -name '*.config.mjs' -o -name '*.config.cjs' -o -name '*.config.ts' -o -name '*.config.json' \) -print 2>/dev/null \
+                 | while read -r f; do
+                     awk -v F="$f" 'length($0)>2000 { print "  " F " line " NR ": " length($0) " chars" }' "$f" 2>/dev/null
+                   done)
+          if [ -n "$LONG" ]; then
+            echo "$LONG"
+            echo "::error::Config file contains a line over 2000 chars — payloads hide there."
+            FAIL=1
+          else
+            echo "none"
+          fi
+          echo "::endgroup::"
+
+          echo "::group::long runs of trailing whitespace"
+          # 20+ consecutive spaces mid-line is the padding that pushes the payload
+          # off-screen. Nothing legitimate does this in source.
+          PAD=$(find . $PRUNE -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.cjs' -o -name '*.ts' \) -print 2>/dev/null \
+                | grep -v -E '\.min\.' \
+                | xargs grep -lIE ' {80,}' 2>/dev/null || true)
+          if [ -n "$PAD" ]; then
+            echo "$PAD" | sed 's/^/  /'
+            echo "::error::Source file contains 80+ consecutive spaces — that is payload padding."
+            FAIL=1
+          else
+            echo "none"
+          fi
+          echo "::endgroup::"
+
+          if [ "$FAIL" -ne 0 ]; then
+            echo ""
+            echo "Supply-chain scan FAILED. Do not build, install, or run this checkout."
+            exit 1
+          fi
+          echo "Supply-chain scan passed."
