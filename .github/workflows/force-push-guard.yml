@@ -28,10 +28,11 @@ jobs:
           AFTER: ${{ github.event.after }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
+          # No --label here on purpose: gh fails the whole command if the label
+          # does not exist in the repo, which silently loses the issue.
           gh issue create \
             --repo "$REPO" \
             --title "Force-push on \`$REF\` by @$ACTOR" \
-            --label "security" \
             --body "$(cat <<EOF
           A **non-fast-forward push** rewrote history on \`$REF\`.
 
