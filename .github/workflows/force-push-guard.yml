@@ -1,0 +1,64 @@
+name: Force-push guard
+
+# Free replacement for branch protection (which GitHub gates behind Pro on
+# private repos). Cannot stop a force-push, but makes one impossible to hide:
+# it runs server-side on GitHub, opens an issue, and fails loudly.
+#
+# Added 2026-08-23 after an account credential was used to force-push rewritten
+# history carrying a malware payload across every branch of two repos.
+
+on: push
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  detect:
+    if: github.event.forced
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open an issue recording the force-push
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          REF: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.after }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue create \
+            --repo "$REPO" \
+            --title "Force-push on \`$REF\` by @$ACTOR" \
+            --label "security" \
+            --body "$(cat <<EOF
+          A **non-fast-forward push** rewrote history on \`$REF\`.
+
+          | | |
+          |---|---|
+          | actor | @$ACTOR |
+          | ref | \`$REF\` |
+          | before | \`$BEFORE\` |
+          | after | \`$AFTER\` |
+          | run | $RUN_URL |
+
+          If this was you, close this issue.
+
+          **If it was not you**, the commits at \`$BEFORE\` may now be unreachable.
+          Recover them before GitHub garbage-collects:
+
+          \`\`\`bash
+          git fetch origin $BEFORE
+          git branch recovered-$REF $BEFORE
+          \`\`\`
+
+          Then revoke every personal access token, OAuth app, and SSH key on the
+          account, and check the security log for which credential was used.
+          EOF
+          )" || echo "issue creation failed (labels may not exist) — the failing run below is still the signal"
+
+      - name: Fail so the push is visibly red
+        run: |
+          echo "::error::Force-push detected on ${{ github.ref_name }} by ${{ github.actor }} (${{ github.event.before }} -> ${{ github.event.after }})"
+          exit 1
