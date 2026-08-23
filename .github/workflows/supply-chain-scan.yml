@@ -94,7 +94,7 @@ jobs:
                   -name '*.js' -o -name '*.mjs' -o -name '*.cjs' -o -name '*.jsx' \
                   -o -name '*.ts' -o -name '*.tsx' -o -name '*.mdx' \
                   -o -name '*.vue' -o -name '*.svelte' \) -print 2>/dev/null \
-                | grep -vE '\.min\.' \
+                | { grep -vE '\.min\.' || true; } \
                 | while read -r f; do
                     awk -v F="$f" '
                       {
@@ -104,7 +104,7 @@ jobs:
                           print "  " F " line " NR ": " length($0) "-char line with a " RLENGTH "-space run"
                         }
                       }' "$f" 2>/dev/null
-                  done)
+                  done || true)
           if [ -n "$PAD" ]; then
             echo "$PAD"
             echo "::error::Payload padding detected — source is hiding code off-screen."
