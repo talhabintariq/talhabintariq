@@ -35,12 +35,21 @@ jobs:
           echo "::group::known payload markers"
           # Obfuscator string-table/decoder names, the hardcoded wallet split across
           # four literals, and the C2 request paths.
-          if grep -rInE '_0x12f0|_0x355e|a322e5f3|9adc2490ef|d311d3080e|6f0121063e|/0x/ls|/0x/cl' \
-               --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist \
-               --exclude-dir=build --exclude-dir=.next --exclude-dir=.github \
-               --exclude='*.min.js' --exclude='*.min.css' --exclude='*-lock.json' \
-               --exclude='*.lock' . ; then
-            echo "::error::Known malware markers found."
+          #
+          # Scoped to file types that can actually EXECUTE. Prose files are excluded
+          # on purpose: security write-ups quote these same indicators, and a payload
+          # sitting in a .md cannot run. Matching them would train everyone to ignore
+          # this check.
+          MARK=$(find . $PRUNE -type f \( \
+                   -name '*.js' -o -name '*.mjs' -o -name '*.cjs' -o -name '*.jsx' \
+                   -o -name '*.ts' -o -name '*.tsx' -o -name '*.mts' -o -name '*.cts' \
+                   -o -name '*.mdx' -o -name '*.vue' -o -name '*.svelte' \
+                   -o -name '*.json' -o -name '*.html' -o -name '*.py' -o -name '*.sh' \) -print 2>/dev/null \
+                 | grep -vE '\.min\.|-lock\.json$|\.lock$' \
+                 | xargs grep -lIE '_0x12f0|_0x355e|a322e5f3|9adc2490ef|d311d3080e|6f0121063e|/0x/ls|/0x/cl' 2>/dev/null || true)
+          if [ -n "$MARK" ]; then
+            echo "$MARK" | sed 's/^/  /'
+            echo "::error::Known malware markers found in executable source."
             FAIL=1
           else
             echo "none"
