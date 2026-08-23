@@ -84,15 +84,30 @@ jobs:
           fi
           echo "::endgroup::"
 
-          echo "::group::long runs of trailing whitespace"
-          # 20+ consecutive spaces mid-line is the padding that pushes the payload
-          # off-screen. Nothing legitimate does this in source.
-          PAD=$(find . $PRUNE -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.cjs' -o -name '*.ts' \) -print 2>/dev/null \
-                | grep -v -E '\.min\.' \
-                | xargs grep -lIE ' {80,}' 2>/dev/null || true)
+          echo "::group::payload padding"
+          # The injection buried its loader behind ~29,900 spaces so the line renders
+          # as just "};" in an editor. Two thresholds, because ASCII-art console
+          # banners legitimately pad 80-100 spaces for alignment:
+          #   - any run of 200+ spaces  (the observed attack used 29,900)
+          #   - a run of 40+ spaces on a line over 1000 chars (a subtler variant)
+          PAD=$(find . $PRUNE -type f \( \
+                  -name '*.js' -o -name '*.mjs' -o -name '*.cjs' -o -name '*.jsx' \
+                  -o -name '*.ts' -o -name '*.tsx' -o -name '*.mdx' \
+                  -o -name '*.vue' -o -name '*.svelte' \) -print 2>/dev/null \
+                | grep -vE '\.min\.' \
+                | while read -r f; do
+                    awk -v F="$f" '
+                      {
+                        if (match($0, / {200,}/)) {
+                          print "  " F " line " NR ": run of " RLENGTH " spaces"
+                        } else if (length($0) > 1000 && match($0, / {40,}/)) {
+                          print "  " F " line " NR ": " length($0) "-char line with a " RLENGTH "-space run"
+                        }
+                      }' "$f" 2>/dev/null
+                  done)
           if [ -n "$PAD" ]; then
-            echo "$PAD" | sed 's/^/  /'
-            echo "::error::Source file contains 80+ consecutive spaces — that is payload padding."
+            echo "$PAD"
+            echo "::error::Payload padding detected — source is hiding code off-screen."
             FAIL=1
           else
             echo "none"
